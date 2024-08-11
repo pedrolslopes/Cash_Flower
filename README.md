@@ -1,6 +1,6 @@
-# SciFund_Forecast: A Cashflow Simulator for Scientific Organizations
+# Cash Flower: A Cashflow Simulator for Scientific Organizations
 
-SciFund_ Forecast is a Python-based simulation tool designed to model various cash flow scenarios within scientific organizations, research groups, or institutes. It helps scientific team managers understand the financial impact of different cash flow events in their groups, including individual funding events, milestone-based projects, mid-term recurring payments, and stable sources of income or expenses. The simulator can generate key insights into potential risks, including the probability of running into a negative balance.
+Cash Flower is a Python-based simulation tool designed to model various cash flow scenarios within scientific organizations, research groups, or institutes. It helps scientific team managers understand the financial impact of different cash flow events in their groups, including individual funding events, milestone-based projects, mid-term recurring payments, and stable sources of income or expenses. The simulator can generate key insights into potential risks, including the probability of running into a negative balance.
 
 ## Features
 
@@ -43,7 +43,7 @@ Both script and interactive versions of the code are available.
 2. **Run the Simulation:** Execute the script to generate the simulation results.
 
     ```bash
-    python SciFund_Forecast.py
+    python Cash_Flower.py
 
 3. **Analyze the Results:** The simulation will produce visualizations showing monthly cash flows (absolute and statistical aggregated), accumulated funds, and the risk of negative balance.
 
