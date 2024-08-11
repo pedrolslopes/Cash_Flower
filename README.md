@@ -21,14 +21,13 @@ Cash Flower is a Python-based simulation tool designed to model various cash flo
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/CashFlowSim.git
-   cd CashFlowSim
+   git clone https://github.com/pedrolslopes/Cash_Flower.git
    ```
 
 2. Install the required Python packages:
 
     ```bash
-    pip install numpy matplotlib
+    pip install numpy matplotlib datetime
     ```
 Both script and interactive versions of the code are available.
 
