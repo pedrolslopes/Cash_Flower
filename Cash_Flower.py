@@ -28,9 +28,11 @@ def flip(p):
 # Modify the parameters to include specific dates
 singles_params = [
     {'name': 'kick_start', 'chance': 1.0, 'date': datetime.date(2024, 5, 1), 'amount': 2000000},
+    {'name': 'major_purchase', 'chance': 1.0, 'date': datetime.date(2024, 5, 1), 'amount': -100000},
     {'name': 'grant_test', 'chance': 0.8, 'date': datetime.date(2024, 9, 1), 'amount': 1000000},
     {'name': 'big_sale', 'chance': 0.5, 'date': datetime.date(2025, 4, 1), 'amount': 500000},
 ]
+
 recurrent_params = [
     {'name': 'pappalardo_test', 'chance': 1.0, 'date': datetime.date(2024, 7, 1), 'amount': 1000000, 'duration': 48, 'number': 3, 'payment_frequency': 3},
     {'name': 'another_pappalardo', 'chance': 0.5, 'date': datetime.date(2025, 4, 1), 'amount': 500000, 'duration': 12, 'number': 12},
@@ -299,28 +301,55 @@ project_results = simulate_project_cash_flows(num_simulations, num_months, proje
 
 ##### Data analysis ####
 
-# Calculate total revenue and expenses for each simulation and month
+# Calculate revenue and expenses, and cashflow for each simulation and month
 total_singles = np.sum(list(singles_results.values()), axis=0) if isinstance(singles_results, dict) else singles_results
-total_recurrent = np.sum(list(recurrent_results.values()), axis=0) if isinstance(recurrent_results, dict) else recurrent_results
-total_stable = np.sum(list(stable_results.values()), axis=0) if isinstance(stable_results, dict) else stable_results
+singles_revenue= np.sum([value * (value > 0) for value in singles_results.values()],axis=0)
+singles_expenses= np.sum([value * (value < 0) for value in singles_results.values()],axis=0)
 
+
+total_recurrent = np.sum(list(recurrent_results.values()), axis=0) if isinstance(recurrent_results, dict) else recurrent_results
+recurrent_revenue= np.sum([value * (value > 0) for value in recurrent_results.values()],axis=0)
+recurrent_expenses= np.sum([value * (value < 0) for value in recurrent_results.values()],axis=0)
+
+
+total_stable = np.sum(list(stable_results.values()), axis=0) if isinstance(stable_results, dict) else stable_results
+stable_revenue= np.sum([value * (value > 0) for value in stable_results.values()],axis=0)
+stable_expenses= np.sum([value * (value < 0) for value in stable_results.values()],axis=0)
+
+
+total_projects = np.zeros((num_simulations, num_months))
+projects_revenue = np.zeros((num_simulations, num_months))
+projects_expenses = np.zeros((num_simulations, num_months))
+
+# Check if project_results is a dictionary, then perform the calculations
 if isinstance(project_results, dict):
-    total_projects = np.zeros((num_simulations, num_months)) 
     for project_cash_flow in project_results.values():
         for cash_flow_array in project_cash_flow.values():
+            # Accumulate total, positive, and negative cash flows
             total_projects += cash_flow_array
+            projects_revenue += cash_flow_array * (cash_flow_array > 0)
+            projects_expenses += cash_flow_array * (cash_flow_array < 0)
 else:
-    project_results
+    # If project_results is not a dictionary, assign directly
+    total_projects = project_results
+    projects_revenue = project_results * (project_results > 0)
+    projects_expenses = project_results * (project_results < 0)
+
 
 
 # Calculate monthly cash flow for each simulation
 monthly_cash_flow = total_singles + total_recurrent + total_stable + total_projects
+monthly_revenue = singles_revenue + recurrent_revenue + stable_revenue + projects_revenue
+monthly_expenses = singles_expenses + recurrent_expenses + stable_expenses + projects_expenses
 
 # Calculate total accumulated funds over time for each simulation
 accumulated_funds = np.cumsum(monthly_cash_flow, axis=1)
 
 # Adjust to show only forecast period (starting from the current date)
 monthly_cash_flow_forecast = monthly_cash_flow[:, num_past_months:]
+monthly_revenue_forecast = monthly_revenue[:, num_past_months:]
+monthly_expense_forecast = monthly_expenses[:, num_past_months:]
+
 accumulated_funds_forecast = accumulated_funds[:, num_past_months:]
 
 # Calculate statistics over all simulations for each month
@@ -330,6 +359,7 @@ std_dev_cash_flow = np.std(monthly_cash_flow_forecast, axis=0)
 # Calculate the probability of going negative in each month
 probability_negative_balance = np.mean(accumulated_funds_forecast < 0, axis=0) * 100
 max_prob = np.max(probability_negative_balance)
+
 
 ### Plotting ####
 
@@ -346,14 +376,14 @@ for i in range(num_forecast_months):
     month = (current_month + i - 1) % 12 + 1
     month_labels.append(f'{datetime.datetime(year, month, 1).strftime("%b %Y")}')
 
-def plot_monthly_histogram(monthly_cash_flow_forecast, num_forecast_months):
+def plot_monthly_histogram(monthly_revenue_forecast,monthly_expense_forecast, num_forecast_months):
     income_histogram = np.zeros(num_forecast_months)
     expense_histogram = np.zeros(num_forecast_months)
 
     # Calculate income and expenses for each month in the forecast period
     for month in range(num_forecast_months):
-        income_histogram[month] = np.sum(monthly_cash_flow_forecast[:, month][monthly_cash_flow_forecast[:, month] > 0])/ num_simulations
-        expense_histogram[month] = np.sum(np.abs(monthly_cash_flow_forecast[:, month][monthly_cash_flow_forecast[:, month] < 0]))/ num_simulations
+        income_histogram[month] = np.sum(monthly_revenue_forecast[:, month])/ num_simulations
+        expense_histogram[month] = np.sum(np.abs(monthly_expense_forecast[:, month]))/ num_simulations
 
     # Plot the histogram
     plt.bar(months - 0.2, income_histogram / 1e6, width=0.4, label='Income ($ millions)', color='green')
@@ -370,7 +400,7 @@ plt.figure(figsize=(18, 12))
 
 # Plot the monthly histogram of income and expenses
 plt.subplot(2, 2, 1)
-plot_monthly_histogram(monthly_cash_flow_forecast, num_forecast_months)
+plot_monthly_histogram(monthly_revenue_forecast,monthly_expense_forecast, num_forecast_months)
 
 # Plot the monthly estimate of total cash flow (mean with std dev bounds)
 max_val = np.max((mean_cash_flow + std_dev_cash_flow) / 1e6)
@@ -423,6 +453,5 @@ plt.xticks(months, month_labels, rotation=45)
 # Adjust layout and display the plots
 plt.tight_layout()
 plt.savefig('cash_flower_analysis_example.png', dpi=300, bbox_inches='tight')
-
 
 
